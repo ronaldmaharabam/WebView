@@ -1,9 +1,4 @@
-//
-//  ContentView.swift
-//  WebView
-//
-//  Created by Ronald Maharabam on 05/02/24.
-//
+
 import SwiftUI
 import WebKit
 import AVFoundation
@@ -50,8 +45,22 @@ struct WebView: UIViewRepresentable {
         }
 
         func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
-            decisionHandler(.grant)
+            if AVCaptureDevice.authorizationStatus(for: .video) == .authorized && AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
+                decisionHandler(.grant)
+            } else {
+                AVCaptureDevice.requestAccess(for: .video) { videoGranted in
+                    AVCaptureDevice.requestAccess(for: .audio) { audioGranted in
+                        if videoGranted && audioGranted {
+                            decisionHandler(.grant)
+                        } else {
+                            print("request denied")
+                            decisionHandler(.deny)
+                        }
+                    }
+                }
+            }
         }
+        
     }
 
 
@@ -59,63 +68,73 @@ struct WebView: UIViewRepresentable {
 
 struct ContentView: View {
     @State private var urlString = "https://video-practo.netlify.app/"
-//    @State private var urlString = "http://localhost:3000"
     @State private var cameraPermissionGranted = false
     @State private var audioPermissionGranted = false
 
     var body: some View {
         NavigationView {
             WebView(urlString: urlString)
-//                .navigationBarTitle("Web View Example")
-//                .navigationBarItems(trailing: Button("Reload") {
-//                    urlString = "https://www.google.com"
-//                })
-        }.onAppear{
+        }
+        .onAppear {
             checkAndRequestPermissions()
         }
     }
-    private func requestCameraAndAudioPermissions() {
-       AVCaptureDevice.requestAccess(for: .video) { grantedVideo in
-           AVCaptureDevice.requestAccess(for: .audio) { grantedAudio in
-               DispatchQueue.main.async {
-                   cameraPermissionGranted = true
-                   audioPermissionGranted = true
-               }
-           }
-       }
-    }
+
     private func checkAndRequestPermissions() {
-        if !UserDefaults.standard.bool(forKey: "CameraPermissionGranted") {
-            AVCaptureDevice.requestAccess(for: .video) { grantedVideo in
-                if grantedVideo {
-                    cameraPermissionGranted = true
-                    UserDefaults.standard.set(true, forKey: "CameraPermissionGranted")
-                } else {
-                    print("Camera permission not granted")
-                }
-            }
-        } else {
-            cameraPermissionGranted = true
-        }
-
-        if !UserDefaults.standard.bool(forKey: "AudioPermissionGranted") {
-            AVCaptureDevice.requestAccess(for: .audio) { grantedAudio in
-                if grantedAudio {
-                    audioPermissionGranted = true
-                    UserDefaults.standard.set(true, forKey: "AudioPermissionGranted")
-                } else {
-                    print("Audio permission not granted")
-                }
-            }
-        } else {
-            audioPermissionGranted = true
-        }
+//        checkCameraPermission()
+//        checkAudioPermission()
     }
 
+   
 }
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
     }
 }
+//
+//private func checkCameraPermission() {
+////        if AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined {
+////            requestCameraPermission()
+//    if AVCaptureDevice.authorizationStatus(for: .video) == .authorized {
+//        cameraPermissionGranted = true
+//        print("has camera per")
+//    } else {
+//        requestCameraPermission()
+//        print("Camera permission not granted")
+//    }
+//}
+//
+//private func requestCameraPermission() {
+//    print("requesting Camera per")
+//    AVCaptureDevice.requestAccess(for: .video) { granted in
+//        DispatchQueue.main.async {
+//            cameraPermissionGranted = granted
+//            UserDefaults.standard.set(granted, forKey: "CameraPermissionGranted")
+//        }
+//    }
+//}
+//
+//private func checkAudioPermission() {
+////        if AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
+////            requestAudioPermission()
+//    if AVCaptureDevice.authorizationStatus(for: .audio) == .authorized {
+//        audioPermissionGranted = true
+//    } else {
+//        requestAudioPermission()
+//        print("Audio permission not granted")
+//    }
+//}
+//
+//private func requestAudioPermission() {
+//    print("requesting audio per")
+//    AVCaptureDevice.requestAccess(for: .audio) { granted in
+//        DispatchQueue.main.async {
+//            audioPermissionGranted = granted
+//            UserDefaults.standard.set(granted, forKey: "AudioPermissionGranted")
+//        }
+//
+//}
+// }
